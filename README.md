@@ -61,14 +61,14 @@ Some considerations:
 
 - Each row ends with a line break.
 - The separator character is space.
-- The Time Matrix can be asymmectric.
+- The Time Matrix can be asymmetric.
 - If two nodes were not directly connected, this would be reflected in the time matrix with a −1.
 
 ### Type 2 Instance
 
 This file has the next format:
 
-- 1st line: (int) Number of turists in the instance.
+- 1st line: (int) Number of tourists in the instance.
 - The following is repeated for the indicated number of tourists:
   - Line: (int) Available time for the tour.
   - Line: (int) Scores for each node.
