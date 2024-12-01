@@ -341,8 +341,6 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
     initialize_population();
     this->best_solution = this->population[0];
 
-    // random number generator between 0 and 1, for the crossover phase
-
     int i;
     for(i=0; i < this->max_iterations;i++){
 
