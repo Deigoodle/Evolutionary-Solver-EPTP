@@ -70,7 +70,6 @@ int main(int argc, char** argv){
             // solve` "reset" times
             vector<Solver::Solution> user_solutions;
             for(int j=0; j < resets; j++){
-                s.reset_seed();
                 user_solutions.push_back(s.solve(node_valuations,
                                                  edge_valuations, 
                                                  available_time,
