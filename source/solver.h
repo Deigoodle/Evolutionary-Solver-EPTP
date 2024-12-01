@@ -20,12 +20,16 @@ public:
         bool feasible;
     };
 
-    //variables
-    int max_iterations;
-    const int starting_node = 0;
+    // initialization parameters
     unsigned long n;
-    vector<int> node_dwell_times;
-    vector<vector<int>> edge_travel_times;
+    vector<int> node_dwell_times; // list of node dwell times
+    vector<vector<int>> edge_travel_times; // matrix of edge dwell times
+    int max_iterations;
+    unsigned int seed;
+
+    // extra variables
+    mt19937 gen; // random generator
+    const int starting_node = 0;
     int population_size;
     vector<Solution> population;
     Solution best_solution;
@@ -35,11 +39,14 @@ public:
     Solver(int n, 
            vector<int> node_dwell_times, 
            vector<vector<int>> edge_travel_times, 
-           int max_iterations);
+           int max_iterations,
+           unsigned int seed);
 
     ~Solver();
 
     // methods
+    void reset_seed();
+
     vector<int> generate_chromosome();
 
     Solution generate_solution();

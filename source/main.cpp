@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include "Solver.cpp"
+#include "solver.h"
 
 using namespace std;
 
@@ -27,13 +27,16 @@ int main(int argc, char** argv){
     int population_size = stoi(argv[4]);
     float crossover_rate = stof(argv[5]);
     float mutation_rate = stof(argv[6]);
-    float resets = stoi(argv[7]);
+    int resets = stoi(argv[7]);
 
     // get instance parameters
     p = get_parameters(type_1_instance);
 
+    // initialize seed
+    unsigned seed = 64;
+
     // initialize solver
-    Solver s = Solver(p.n, p.node_dwell_times, p.edge_travel_times, max_iterations);
+    Solver s = Solver(p.n, p.node_dwell_times, p.edge_travel_times, max_iterations, seed);
 
     // initialize random seed to generate random solutions
     srand(time(0));
@@ -67,6 +70,7 @@ int main(int argc, char** argv){
             // solve` "reset" times
             vector<Solver::Solution> user_solutions;
             for(int j=0; j < resets; j++){
+                s.reset_seed();
                 user_solutions.push_back(s.solve(node_valuations,
                                                  edge_valuations, 
                                                  available_time,

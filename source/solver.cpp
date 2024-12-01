@@ -1,11 +1,15 @@
-#include "Solver.h"
+#include "solver.h"
 
-Solver::Solver(int n, vector<int> node_dwell_times, vector<vector<int>> edge_travel_times, int max_iterations) {
+Solver::Solver(int n, vector<int> node_dwell_times, vector<vector<int>> edge_travel_times, int max_iterations, unsigned int seed) {
     // initialize variables
     this->max_iterations = max_iterations;
     this->n = n;
     this->node_dwell_times = node_dwell_times;
     this->edge_travel_times = edge_travel_times;
+    this->seed = seed;
+
+    // initialize random number generator with the fixed seed
+    this->gen = mt19937(seed);
 
     // best solution
     this->best_solution = Solution{vector<int>(n-1), static_cast<unsigned long>(n-1), 0,0,true};
@@ -14,8 +18,14 @@ Solver::Solver(int n, vector<int> node_dwell_times, vector<vector<int>> edge_tra
 Solver::~Solver() {
 }
 
+void Solver::reset_seed()
+{
+    this->gen.seed(this->seed);
+}
+
 // chromosome [1,2,3,...,n-1]
-vector<int> Solver::generate_chromosome(){ 
+vector<int> Solver::generate_chromosome()
+{ 
     vector<int> chromosome;
     for (unsigned long i = 1; i < this->n; i++){
         chromosome.push_back(i);
@@ -24,29 +34,28 @@ vector<int> Solver::generate_chromosome(){
 }
 
 // solution of random size (between 1 and n-1) 
-Solver::Solution Solver::generate_solution(){
+Solver::Solution Solver::generate_solution()
+{
     unsigned long chromosome_size;
     vector<int> chromosome = generate_chromosome();
     
-    chromosome_size = (rand() % (this->n - 1)) + 1;
+    chromosome_size = (this->gen() % (this->n - 1)) + 1;
     chromosome = shuffle_chromosome(chromosome);
     chromosome.resize(chromosome_size);
 
-    return Solution{chromosome, chromosome_size, 0,0,true};
+    return Solution{chromosome, chromosome_size, 0, 0, true};
 }
 
-vector<int> Solver::shuffle_chromosome(vector<int> chromosome){
-    // Create a random number generator
-    random_device rd;  // integer random number generator
-    mt19937 g(rd());   // Mersenne Twister random number generator
-
-    shuffle(chromosome.begin(), chromosome.end(), g);
+vector<int> Solver::shuffle_chromosome(vector<int> chromosome)
+{
+    shuffle(chromosome.begin(), chromosome.end(), this->gen);
 
     return chromosome;
 }
 
 // encode with reference list
-Solver::Solution Solver::encode_solution(Solution solution){
+Solver::Solution Solver::encode_solution(Solution solution)
+{
     vector<int> reference_list(this->n);
     vector<int> encoded_chromosome(solution.size);
 
@@ -85,7 +94,8 @@ Solver::Solution Solver::encode_solution(Solution solution){
     return Solution{encoded_chromosome, solution.size, solution.fitness};
 }*/
 
-Solver::Solution Solver::decode_solution(Solution solution){
+Solver::Solution Solver::decode_solution(Solution solution)
+{
     vector<int> reference_list = generate_chromosome();
     vector<int> decoded_chromosome(solution.size);
 
@@ -97,7 +107,8 @@ Solver::Solution Solver::decode_solution(Solution solution){
     return Solution{decoded_chromosome, solution.size, solution.fitness,solution.tour_time,true};
 }
 
-void Solver::print_solution(Solution solution, int available_time){
+void Solver::print_solution(Solution solution, int available_time)
+{
     cout<< solution.fitness << endl;
     cout<< available_time << " "<< solution.tour_time << endl;
     cout<< 1 << " ";
@@ -111,7 +122,9 @@ void Solver::print_solution(Solution solution, int available_time){
 }
 
 // 1 point crossover, the crossover point is randomly selected in the shortest chromosome
-tuple<Solver::Solution, Solver::Solution> Solver::onepoint_crossover(Solution parent1, Solution parent2){
+tuple<Solver::Solution, Solver::Solution> Solver::onepoint_crossover(Solution parent1, 
+                                                                     Solution parent2)
+{
     // check shortest chromosome
     int shortest_chromosome_size = min(parent1.size, parent2.size);
     // select crossover point
@@ -120,7 +133,7 @@ tuple<Solver::Solution, Solver::Solution> Solver::onepoint_crossover(Solution pa
         crossover_point = 1;
     }
     else{
-        crossover_point = rand() % (shortest_chromosome_size - 1) + 1;// the -1 and +1 are to avoid the starting node
+        crossover_point = this->gen() % (shortest_chromosome_size - 1) + 1;// the -1 and +1 are to avoid the starting node
     }
     // create children
     vector<int> child1;
@@ -142,7 +155,9 @@ tuple<Solver::Solution, Solver::Solution> Solver::onepoint_crossover(Solution pa
     return make_tuple(Solution{child1, child1.size(),0,0,true}, Solution{child2, child2.size(),0,0,true});
 }
 
-tuple<Solver::Solution, Solver::Solution> Solver::order_crossover(Solution parent1, Solution parent2){
+tuple<Solver::Solution, Solver::Solution> Solver::order_crossover(Solution parent1, 
+                                                                  Solution parent2)
+{
     if(parent1.size == 1 && parent2.size == 1){
         return make_tuple(parent1, parent2);
     }
@@ -156,8 +171,8 @@ tuple<Solver::Solution, Solver::Solution> Solver::order_crossover(Solution paren
         b = 0;
     }
     else{
-        a = rand() % (shortest_chromosome_size - 1);
-        b = rand() % (shortest_chromosome_size - 1);
+        a = this->gen() % (shortest_chromosome_size - 1);
+        b = this->gen() % (shortest_chromosome_size - 1);
     }
     // make sure a is equal or smaller than b
     if(a > b){
@@ -204,11 +219,12 @@ tuple<Solver::Solution, Solver::Solution> Solver::order_crossover(Solution paren
     return make_tuple(Solution{child1, parent2.size,0,0,true}, Solution{child2, parent1.size,0,0,true});
 }
 
-Solver::Solution Solver::mutate(Solution solution){
-    int random_node = rand() % (this->n-1) + 1; // random number between 1 and n-1
+Solver::Solution Solver::mutate(Solution solution)
+{
+    int random_node = this->gen() % (this->n-1) + 1; // random number between 1 and n-1
     int random_position;
     if (solution.size > 1) {
-        random_position = rand() % solution.size; // random number between 0 and solution.size-1
+        random_position = this->gen() % solution.size; // random number between 0 and solution.size-1
     } else {
         random_position = 0; // if solution.size is 1, random_position should be 0
     }
@@ -231,7 +247,11 @@ Solver::Solution Solver::mutate(Solution solution){
 }
 
 
-Solver::Solution Solver::calculate_fitness(Solution solution, vector<int> node_valuations, vector<vector<int>> edge_valuations, int available_time){
+Solver::Solution Solver::calculate_fitness(Solution solution, 
+                                           vector<int> node_valuations, 
+                                           vector<vector<int>> edge_valuations, 
+                                           int available_time)
+{
     int fitness = node_valuations[this->starting_node];
     int current_time = this->node_dwell_times[this->starting_node];
     bool feasible = true;
@@ -290,12 +310,17 @@ void Solver::initialize_population(){
     this->population.clear();
     for(int i = 0; i < this->population_size; i++){
         Solution solution = this->generate_solution();
+        cout << "Solution " << i + 1 << " (size: " << solution.size << "): ";
+        for(long unsigned int j = 0; j < solution.size; j++){
+            cout << solution.chromosome[j] << " ";
+        }
+        cout << endl;
         this->population.push_back(solution);
     }
 }
 
 int Solver::spin_roulette_wheel(int total_fitness){
-    int random_fitness = rand() % total_fitness; // random number between 0 and total_fitness-1
+    int random_fitness = this->gen() % total_fitness; // random number between 0 and total_fitness-1
     int selected_index = -1; 
     int sum_fitness = 0;
     for(int i = 0; i < this->population_size; i++){
@@ -308,16 +333,23 @@ int Solver::spin_roulette_wheel(int total_fitness){
     return selected_index;
 }
 
-Solver::Solution Solver::solve(vector<int>node_valuations, vector<vector<int>> edge_valuations, int available_time, float crossover_rate,float mutation_rate, int population_size, bool orderX){
+Solver::Solution Solver::solve(vector<int>node_valuations, 
+                               vector<vector<int>> edge_valuations, 
+                               int available_time, 
+                               float crossover_rate, 
+                               float mutation_rate, 
+                               int population_size, 
+                               bool orderX)
+{
     this->population_size = population_size;
     auto start = chrono::high_resolution_clock::now();
     initialize_population();
     this->best_solution = this->population[0];
 
     // random number generator between 0 and 1, for the crossover phase
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_real_distribution<> dis(0.0, 1.0);
+    //random_device rd;
+    //mt19937 gen(rd());
+    //uniform_real_distribution<> dis(0.0, 1.0);
 
     int i;
     for(i=0; i < this->max_iterations;i++){
@@ -354,7 +386,7 @@ Solver::Solution Solver::solve(vector<int>node_valuations, vector<vector<int>> e
         vector<Solution> offspring;
         for (int k = 1; k < selected_population_size; k += 2) {
             // generate random number between 0 and 1
-            double random_number = dis(gen);
+            double random_number = generate_canonical<double, 10>(this->gen);
             
             if (random_number < crossover_rate) {
                 // get parents
@@ -396,7 +428,7 @@ Solver::Solution Solver::solve(vector<int>node_valuations, vector<vector<int>> e
         // mutation phase
         for(int l = 0; l < this->population_size; l++){
             // generate random number between 0 and 1
-            double random_number = dis(gen);
+            double random_number = generate_canonical<double, 10>(this->gen);;
             if (random_number < mutation_rate) {
                 this->population[l] = mutate(this->population[l]);
             }
