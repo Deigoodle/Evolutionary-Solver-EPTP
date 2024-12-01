@@ -109,16 +109,17 @@ Solver::Solution Solver::decode_solution(Solution solution)
 
 void Solver::print_solution(Solution solution, int available_time)
 {
-    cout<< solution.fitness << endl;
-    cout<< available_time << " "<< solution.tour_time << endl;
+    cout<< "Score: " << solution.fitness << endl;
+    cout<< "Tour Time/Available Time: " << solution.tour_time << "/" << available_time << endl;
+    cout<< "Solution: ";
     cout<< 1 << " ";
     for (unsigned long i = 0; i < solution.size; i++){
         cout << solution.chromosome[i] + 1 << " ";
     }
-    cout << endl;
     if(!solution.feasible){
-        cout << "infeasible" << endl;
+        cout << "(Infeasible)";
     }
+    cout << endl;
 }
 
 // 1 point crossover, the crossover point is randomly selected in the shortest chromosome

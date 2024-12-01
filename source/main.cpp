@@ -92,8 +92,8 @@ int main(int argc, char** argv){
     for(int i=0; i < user_count; i++){
         cout << "User " << i + 1 << endl;
         for(int j=0; j < resets; j++){
+            if(resets>1) cout<<endl;
             s.print_solution(all_solutions[i][j], available_times[i]);
-            cout<<endl;
         }
         /*
         int infeasible_count = 0;
