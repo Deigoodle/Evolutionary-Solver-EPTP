@@ -107,21 +107,6 @@ Solver::Solution Solver::decode_solution(Solution solution)
     return Solution{decoded_chromosome, solution.size, solution.fitness,solution.tour_time,true};
 }
 
-void Solver::print_solution(Solution solution, int available_time)
-{
-    cout<< "Score: " << solution.fitness << endl;
-    cout<< "Tour Time/Available Time: " << solution.tour_time << "/" << available_time << endl;
-    cout<< "Solution: ";
-    cout<< 1 << " ";
-    for (unsigned long i = 0; i < solution.size; i++){
-        cout << solution.chromosome[i] + 1 << " ";
-    }
-    if(!solution.feasible){
-        cout << "(Infeasible)";
-    }
-    cout << endl;
-}
-
 // 1 point crossover, the crossover point is randomly selected in the shortest chromosome
 tuple<Solver::Solution, Solver::Solution> Solver::onepoint_crossover(Solution parent1, 
                                                                      Solution parent2)
@@ -337,8 +322,9 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
                                int population_size, 
                                bool orderX)
 {
-    this->population_size = population_size;
     auto start = chrono::high_resolution_clock::now();
+
+    this->population_size = population_size;
     initialize_population();
     this->best_solution = this->population[0];
 
@@ -427,8 +413,9 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
         //cout << "new population size: " << this->population_size << endl;
         //cout <<"---------------------------------------------"<<endl;
     }
+    // calculate execution times
     auto end = chrono::high_resolution_clock::now();
-    this->exec_time += end - start;
-    //cout << "Iterations: " << i << endl;
+    this->best_solution.exec_time = end - start;
+
     return this->best_solution;
 }

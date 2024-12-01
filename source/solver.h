@@ -18,6 +18,7 @@ public:
         int fitness;
         int tour_time;
         bool feasible;
+        chrono::duration<double, milli> exec_time;
     };
 
     // initialization parameters
@@ -33,7 +34,6 @@ public:
     int population_size;
     vector<Solution> population;
     Solution best_solution;
-    chrono::duration<double, milli> exec_time;
 
     // constructor, destructor
     Solver(int n, 
@@ -57,7 +57,7 @@ public:
 
     Solution decode_solution(Solution solution);
 
-    void print_solution(Solution solution, int available_time);
+    //void print_solution(Solution solution, int available_time);
 
     tuple<Solution, Solution> onepoint_crossover(Solution parent1, Solution parent2);
 
