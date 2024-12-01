@@ -38,9 +38,6 @@ int main(int argc, char** argv){
     // initialize solver
     Solver s = Solver(p.n, p.node_dwell_times, p.edge_travel_times, max_iterations, seed);
 
-    // initialize random seed to generate random solutions
-    srand(time(0));
-
     // start solving
     vector<vector<Solver::Solution>> all_solutions;
     ifstream file(type_2_instance);

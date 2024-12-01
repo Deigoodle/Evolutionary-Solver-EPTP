@@ -310,11 +310,6 @@ void Solver::initialize_population(){
     this->population.clear();
     for(int i = 0; i < this->population_size; i++){
         Solution solution = this->generate_solution();
-        cout << "Solution " << i + 1 << " (size: " << solution.size << "): ";
-        for(long unsigned int j = 0; j < solution.size; j++){
-            cout << solution.chromosome[j] << " ";
-        }
-        cout << endl;
         this->population.push_back(solution);
     }
 }
@@ -347,9 +342,6 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
     this->best_solution = this->population[0];
 
     // random number generator between 0 and 1, for the crossover phase
-    //random_device rd;
-    //mt19937 gen(rd());
-    //uniform_real_distribution<> dis(0.0, 1.0);
 
     int i;
     for(i=0; i < this->max_iterations;i++){
