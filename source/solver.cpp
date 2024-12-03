@@ -337,6 +337,7 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
             this->population[x] = calculate_fitness(this->population[x], node_valuations, edge_valuations, available_time);
             if(this->population[x].fitness > this->best_solution.fitness){
                 this->best_solution = this->population[x];
+                this->best_solution.iteration = i;
                 //cout<<"new best solution: "<< this->best_solution.fitness <<endl;
             }
             total_fitness += this->population[x].fitness;
@@ -416,6 +417,9 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
     // calculate execution times
     auto end = chrono::high_resolution_clock::now();
     this->best_solution.exec_time = end - start;
+
+    // save last iteration
+    this->best_solution.last_iteration = i;
 
     return this->best_solution;
 }

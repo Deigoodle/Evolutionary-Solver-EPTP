@@ -24,19 +24,19 @@ struct solver_parameters{
     int population_size;
     float crossover_rate;
     float mutation_rate;
-    int resets;
+    int patience;
 } solver_pars;
 
 graph get_parameters(string type_1_instance);
 vector<user> get_users(string type_2_instance, int n);
-vector<Solver::Solution> solve_for_user(user user_info, graph graph_info, solver_parameters solver_pars, unsigned int seed);
+Solver::Solution solve_for_user(user user_info, graph graph_info, solver_parameters solver_pars, unsigned int seed);
 void print_solution(Solver::Solution solution, int available_time);
 
 int main(int argc, char** argv){
     // check input parameters
     if (argc != 8) {
         cout << "Usage: " << argv[0] << " <type 1 instance> " << "<type 2 instance> " << "<max iterations> " 
-             << "<population_size> " << "<crossover rate> " << "<mutation rate> " << "<resets> " << endl;
+             << "<population_size> " << "<crossover rate> " << "<mutation rate> " << "<patience> " << endl;
         return 1;
     }
 
@@ -47,7 +47,7 @@ int main(int argc, char** argv){
     solver_pars.population_size = stoi(argv[4]);
     solver_pars.crossover_rate = stof(argv[5]);
     solver_pars.mutation_rate = stof(argv[6]);
-    solver_pars.resets = stoi(argv[7]);
+    solver_pars.patience = stoi(argv[7]);
 
     // get graph parameters
     graph_info = get_parameters(type_1_instance);
@@ -61,12 +61,12 @@ int main(int argc, char** argv){
 
     // solve for each user
     int n_users = users.size();
-    vector<vector<Solver::Solution>> all_solutions(n_users, vector<Solver::Solution>(solver_pars.resets));
+    vector<Solver::Solution> all_solutions(n_users);
     auto start = chrono::high_resolution_clock::now();
     for(int i=0; i < n_users; i++){
-        vector<Solver::Solution> user_solutions(solver_pars.resets);
-        user_solutions = solve_for_user(users[i], graph_info, solver_pars, seed);
-        all_solutions[i] = user_solutions;
+        Solver::Solution user_solution;
+        user_solution = solve_for_user(users[i], graph_info, solver_pars, seed);
+        all_solutions[i] = user_solution;
     }
     auto end = chrono::high_resolution_clock::now();
     chrono::duration<double, milli> total_time = end - start;
@@ -75,10 +75,7 @@ int main(int argc, char** argv){
     cout << "Total Time: " << total_time.count() << "[ms]\n"<< "-----------------------------------"<<endl;
     for(int i=0; i < n_users; i++){
         cout << "User " << i + 1 << endl;
-        for(int j=0; j < solver_pars.resets; j++){
-            if(solver_pars.resets > 1) cout<<endl;
-            print_solution(all_solutions[i][j], users[i].available_time);
-        }
+        print_solution(all_solutions[i], users[i].available_time);
         cout << "-----------------------------------"<<endl;
     }
 }
@@ -154,10 +151,7 @@ vector<user> get_users(string type_2_instance, int n){
     return users;
 }
 
-vector<Solver::Solution> solve_for_user(user user_info, graph graph_info, solver_parameters solver_pars, unsigned int seed){
-    // solution vector
-    vector<Solver::Solution> user_solutions;
-
+Solver::Solution solve_for_user(user user_info, graph graph_info, solver_parameters solver_pars, unsigned int seed){
     // initialize solver
     Solver s = Solver(graph_info.n, 
                       graph_info.node_dwell_times, 
@@ -166,19 +160,16 @@ vector<Solver::Solution> solve_for_user(user user_info, graph graph_info, solver
                       seed);
 
     // solve "reset" times
-    for(int i=0; i < solver_pars.resets; i++){
-        Solver::Solution solution;
-        solution = s.solve(user_info.node_valuations,
-                                         user_info.edge_valuations, 
-                                         user_info.available_time,
-                                         solver_pars.crossover_rate,
-                                         solver_pars.mutation_rate, 
-                                         solver_pars.population_size,
-                                         /*orderX*/true);
-        user_solutions.push_back(solution);
-    }
+    Solver::Solution solution;
+    solution = s.solve(user_info.node_valuations,
+                       user_info.edge_valuations, 
+                       user_info.available_time,
+                       solver_pars.crossover_rate,
+                       solver_pars.mutation_rate, 
+                       solver_pars.population_size,
+                       /*orderX*/true);
 
-    return user_solutions;
+    return solution;
 }
 
 void print_solution(Solver::Solution solution, int available_time)
@@ -195,6 +186,7 @@ void print_solution(Solver::Solution solution, int available_time)
     }
     cout << endl;
     cout << "Execution Time: " << solution.exec_time.count() << "[ms]"<<endl;
+    cout << "Iteration: " << solution.iteration << "/" << solution.last_iteration << endl;
 }
 
 

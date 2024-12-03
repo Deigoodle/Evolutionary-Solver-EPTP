@@ -13,12 +13,14 @@ class Solver {
 public:
     // solution struct
     struct Solution {
-        vector<int> chromosome;
-        unsigned long size;
-        int fitness;
-        int tour_time;
+        vector<int> chromosome; // numerical representation of the solution
+        unsigned long size; // size of chromosome
+        int fitness; // score
+        int tour_time; // tour time
         bool feasible;
         chrono::duration<double, milli> exec_time;
+        int iteration; // iteration that this solution was found
+        int last_iteration; // last iteration that the Solver executed
     };
 
     // initialization parameters
