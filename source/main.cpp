@@ -157,6 +157,7 @@ Solver::Solution solve_for_user(user user_info, graph graph_info, solver_paramet
                       graph_info.node_dwell_times, 
                       graph_info.edge_travel_times, 
                       solver_pars.max_iterations, 
+                      solver_pars.patience,
                       seed);
 
     // solve "reset" times

@@ -1,11 +1,18 @@
 #include "solver.h"
 
-Solver::Solver(int n, vector<int> node_dwell_times, vector<vector<int>> edge_travel_times, int max_iterations, unsigned int seed) {
+Solver::Solver(int n, 
+               vector<int> node_dwell_times, 
+               vector<vector<int>> edge_travel_times, 
+               int max_iterations, 
+               int patience, 
+               unsigned int seed) 
+{
     // initialize variables
     this->max_iterations = max_iterations;
     this->n = n;
     this->node_dwell_times = node_dwell_times;
     this->edge_travel_times = edge_travel_times;
+    this->patience = patience;
     this->seed = seed;
 
     // initialize random number generator with the fixed seed
@@ -329,19 +336,36 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
     this->best_solution = this->population[0];
 
     int i;
+    int iterations_without_improvement = 0;
     for(i=0; i < this->max_iterations;i++){
+        bool improvement_found = false;
 
         // calculate fitness for each solution
         int total_fitness = 0;
         for(int x = 0; x < this->population_size; x++){
             this->population[x] = calculate_fitness(this->population[x], node_valuations, edge_valuations, available_time);
             if(this->population[x].fitness > this->best_solution.fitness){
+                // reset patience controllers
+                improvement_found = true;
+                iterations_without_improvement = 0;
+
+                // update best_solution
                 this->best_solution = this->population[x];
                 this->best_solution.iteration = i;
                 //cout<<"new best solution: "<< this->best_solution.fitness <<endl;
             }
             total_fitness += this->population[x].fitness;
         }
+        // if no improvement in this iteration add 1 
+        if (!improvement_found){
+            iterations_without_improvement++;
+        }
+
+        // early stopping
+        if (iterations_without_improvement >= patience){
+            break;
+        }
+
         //cout << "Iteration: " << i << endl;
         //cout << "Initial population size: "<< this->population_size << endl;
 

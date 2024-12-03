@@ -28,6 +28,7 @@ public:
     vector<int> node_dwell_times; // list of node dwell times
     vector<vector<int>> edge_travel_times; // matrix of edge dwell times
     int max_iterations;
+    int patience;
     unsigned int seed;
 
     // extra variables
@@ -42,6 +43,7 @@ public:
            vector<int> node_dwell_times, 
            vector<vector<int>> edge_travel_times, 
            int max_iterations,
+           int patience,
            unsigned int seed);
 
     ~Solver();
