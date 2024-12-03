@@ -46,7 +46,11 @@ Given a graph with $n$ nodes and $m$ edges, find a tour that goes through a subs
   - `<population_size>` (int) is the number of random solutions generated at the start of the execution.
   - `<crossover rate>` (float) is the probability of crossover between two solutions.
   - `<mutation rate>` (float) is the probability of mutation of a solution.
-  - `<reset>` (int) is the number of resets or solutions generated for each user.
+  - `<patience>` (int): The maximum number of consecutive iterations (generations) allowed without any improvement in the solution. If this threshold is reached, the algorithm will stop early to prevent unnecessary computations.
+
+- Example
+
+  `./EPTP ../instances/17_instancia.txt ../instances/1us_17_instancia.txt 1000 5000 0.9 0.4 15`
  
 ## Instances
 

@@ -1,136 +1,106 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <thread>
+
 #include "solver.h"
 
 using namespace std;
 
-struct parameters {
+struct graph{
     int n;
     vector<int> node_dwell_times;
     vector<vector<int>> edge_travel_times;
-} p ;
+} graph_info ;
 
-parameters get_parameters(string type_1_instance);
+struct user{
+    int available_time;
+    vector<int> node_valuations;
+    vector<vector<int>> edge_valuations;
+};
+
+struct solver_parameters{
+    int max_iterations;
+    int population_size;
+    float crossover_rate;
+    float mutation_rate;
+    int patience;
+} solver_pars;
+
+graph get_parameters(string type_1_instance);
+vector<user> get_users(string type_2_instance, int n);
+Solver::Solution solve_for_user(user user_info, graph graph_info, solver_parameters solver_pars, unsigned int seed);
+void print_solution(Solver::Solution solution, int available_time);
 
 int main(int argc, char** argv){
     // check input parameters
     if (argc != 8) {
-        cout << "Usage: " << argv[0] << " <type 1 instance> " << "<type 2 instance> " << "<max iterations> " <<"<population_size> "<<"<crossover rate> "<<"<mutation rate> "<<"<resets> "<< endl;
+        cout << "Usage: " << argv[0] << " <type 1 instance> " << "<type 2 instance> " << "<max iterations> " 
+             << "<population_size> " << "<crossover rate> " << "<mutation rate> " << "<patience> " << endl;
         return 1;
     }
 
     // get input parameters
     string type_1_instance = argv[1];
     string type_2_instance = argv[2];
-    int max_iterations = stoi(argv[3]);
-    int population_size = stoi(argv[4]);
-    float crossover_rate = stof(argv[5]);
-    float mutation_rate = stof(argv[6]);
-    int resets = stoi(argv[7]);
+    solver_pars.max_iterations = stoi(argv[3]);
+    solver_pars.population_size = stoi(argv[4]);
+    solver_pars.crossover_rate = stof(argv[5]);
+    solver_pars.mutation_rate = stof(argv[6]);
+    solver_pars.patience = stoi(argv[7]);
 
-    // get instance parameters
-    p = get_parameters(type_1_instance);
+    // get graph parameters
+    graph_info = get_parameters(type_1_instance);
 
     // initialize seed
     unsigned seed = 64;
 
-    // initialize solver
-    Solver s = Solver(p.n, p.node_dwell_times, p.edge_travel_times, max_iterations, seed);
+    // get info of users
+    vector<user> users;
+    users = get_users(type_2_instance, graph_info.n);
 
-    // start solving
-    vector<vector<Solver::Solution>> all_solutions;
-    ifstream file(type_2_instance);
-    int user_count;
-    vector<int> available_times;
-    if (file.is_open()){
-        file >> user_count;
-
-        for(int i=0; i < user_count; i++){ // solve for each user
-            // get parameters for this user
-            int available_time;
-            file >> available_time;
-            available_times.push_back(available_time); // just for printing purposes
-
-            vector<int> node_valuations(p.n);
-            for(int j=0; j < p.n; j++){
-                file >> node_valuations[j];
-            }
-
-            vector<vector<int>> edge_valuations(p.n, vector<int>(p.n));
-            for(int j=0; j < p.n; j++){
-                for(int k=0; k < p.n; k++){
-                    file >> edge_valuations[j][k];
-                }
-            }
-
-            // solve` "reset" times
-            vector<Solver::Solution> user_solutions;
-            for(int j=0; j < resets; j++){
-                user_solutions.push_back(s.solve(node_valuations,
-                                                 edge_valuations, 
-                                                 available_time,
-                                                 crossover_rate,
-                                                 mutation_rate, 
-                                                 population_size,
-                                                 /*orderX*/true));
-            }
-            all_solutions.push_back(user_solutions);
-            user_solutions.clear();
-
-            node_valuations.clear();
-            edge_valuations.clear();
-        }
+    // solve for each user
+    int n_users = users.size();
+    vector<Solver::Solution> all_solutions(n_users);
+    auto start = chrono::high_resolution_clock::now();
+    for(int i=0; i < n_users; i++){
+        Solver::Solution user_solution;
+        user_solution = solve_for_user(users[i], graph_info, solver_pars, seed);
+        all_solutions[i] = user_solution;
     }
-    else {
-        cout << "Unable to open file " << type_2_instance << endl;
-    }
-    file.close();
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double, milli> total_time = end - start;
 
     // print results
-    cout << s.exec_time.count() << "[ms]\n"<< "-----------------------------------"<<endl;
-    for(int i=0; i < user_count; i++){
+    cout << "Total Time: " << total_time.count() << "[ms]\n"<< "-----------------------------------"<<endl;
+    for(int i=0; i < n_users; i++){
         cout << "User " << i + 1 << endl;
-        for(int j=0; j < resets; j++){
-            if(resets>1) cout<<endl;
-            s.print_solution(all_solutions[i][j], available_times[i]);
-        }
-        /*
-        int infeasible_count = 0;
-        for(int j=0; j < resets; j++){
-            if(!all_solutions[i][j].feasible){
-                infeasible_count++;
-            }
-        }
-        cout << " Infeasible: " << infeasible_count << endl;
-        for(int k=0; k < resets; k++){
-            cout << all_solutions[i][k].fitness<<endl;
-        }*/
+        print_solution(all_solutions[i], users[i].available_time);
         cout << "-----------------------------------"<<endl;
     }
 }
 
 // saves parameters of the type_1_instance in a struct
-parameters get_parameters(string type_1_instance){
+graph get_parameters(string type_1_instance){
     ifstream file(type_1_instance);
-    parameters p;
+    graph graph_info;
     if (file.is_open()){
         // first line: n
         int n;
         file >> n;
-        p.n = n;
+        graph_info.n = n;
 
         // second line: dwell times
-        p.node_dwell_times.resize(n);
+        graph_info.node_dwell_times.resize(n);
         for (int i = 0; i < n; i++){
-            file >> p.node_dwell_times[i];
+            file >> graph_info.node_dwell_times[i];
         }
 
         // next n lines: travel times
-        p.edge_travel_times.resize(n, vector<int>(n));
+        graph_info.edge_travel_times.resize(n, vector<int>(n));
         for (int i = 0; i < n; i++){
             for (int j = 0; j < n; j++){
-                file >> p.edge_travel_times[i][j];
+                file >> graph_info.edge_travel_times[i][j];
             }
         }
 
@@ -140,5 +110,84 @@ parameters get_parameters(string type_1_instance){
         cout << "Unable to open file"<<endl;
     }
     
-    return p;
+    return graph_info;
 }
+
+vector<user> get_users(string type_2_instance, int n){
+    ifstream file(type_2_instance);
+    int user_count;
+    vector<user> users;
+
+    if (file.is_open()){
+        // get number of users
+        file >> user_count;
+        users = vector<user>(user_count);
+
+        // get info of users
+        for(int i=0; i < user_count; i++){
+            // get parameters for this user
+            file >> users[i].available_time;
+
+            users[i].node_valuations = vector<int>(n);
+            for(int j=0; j < n; j++){
+                file >> users[i].node_valuations[j];
+            }
+
+            users[i].edge_valuations = vector<vector<int>>(n, vector<int>(n));
+            for(int j=0; j < n; j++){
+                for(int k=0; k < n; k++){
+                    file >> users[i].edge_valuations[j][k];
+                }
+            }
+        }
+        file.close();
+    }
+    else {
+        cout << "Unable to open file " << type_2_instance << endl;
+        file.close();
+        exit(1);
+    }
+    
+    return users;
+}
+
+Solver::Solution solve_for_user(user user_info, graph graph_info, solver_parameters solver_pars, unsigned int seed){
+    // initialize solver
+    Solver s = Solver(graph_info.n, 
+                      graph_info.node_dwell_times, 
+                      graph_info.edge_travel_times, 
+                      solver_pars.max_iterations, 
+                      solver_pars.patience,
+                      seed);
+
+    // solve "reset" times
+    Solver::Solution solution;
+    solution = s.solve(user_info.node_valuations,
+                       user_info.edge_valuations, 
+                       user_info.available_time,
+                       solver_pars.crossover_rate,
+                       solver_pars.mutation_rate, 
+                       solver_pars.population_size,
+                       /*orderX*/true);
+
+    return solution;
+}
+
+void print_solution(Solver::Solution solution, int available_time)
+{
+    cout<< "Score: " << solution.fitness << endl;
+    cout<< "Tour Time/Available Time: " << solution.tour_time << "/" << available_time << endl;
+    cout<< "Solution: ";
+    cout<< 1 << " ";
+    for (unsigned long i = 0; i < solution.size; i++){
+        cout << solution.chromosome[i] + 1 << " ";
+    }
+    if(!solution.feasible){
+        cout << "(Infeasible)";
+    }
+    cout << endl;
+    cout << "Execution Time: " << solution.exec_time.count() << "[ms]"<<endl;
+    cout << "Iteration: " << solution.iteration << "/" << solution.last_iteration << endl;
+}
+
+
