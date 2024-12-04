@@ -1,0 +1,32 @@
+Slave 0 Initialized with seed: 64
+Slave 1 Initialized with seed: 1064
+Slave 2 Initialized with seed: 3064
+Slave 3 Initialized with seed: 6064
+Slave 4 Initialized with seed: 10064
+Slave 5 Initialized with seed: 15064
+Slave 6 Initialized with seed: 21064
+Slave 7 Initialized with seed: 28064
+GENERACION: 0 / Tamaño: 40
+-------------------
+0
+Score: 25
+Tour Time/Available Time: 320/208
+Solution: 1 15 17 (Infeasible)
+Execution Time: 0[ms]
+Iteration: 0/0
+______________
+1
+Score: 16
+Tour Time/Available Time: 533/208
+Solution: 1 3 4 12 16 9 (Infeasible)
+Execution Time: 0[ms]
+Iteration: 0/0
+______________
+2
+Score: 15
+Tour Time/Available Time: 829/208
+Solution: 1 17 10 4 15 6 7 14 12 2 11 8 (Infeasible)
+Execution Time: 0[ms]
+Iteration: 0/0
+______________
+3

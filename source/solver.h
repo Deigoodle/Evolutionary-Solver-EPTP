@@ -6,6 +6,8 @@
 #include <random>
 #include <chrono>
 #include <cmath>
+#include <barrier>
+#include <atomic>
 
 using namespace std;
 
@@ -18,9 +20,27 @@ public:
         int fitness; // score
         int tour_time; // tour time
         bool feasible;
-        chrono::duration<double, milli> exec_time;
+        double exec_time;
         int iteration; // iteration that this solution was found
         int last_iteration; // last iteration that the Solver executed
+
+        // Default constructor
+        Solution() : size(0), fitness(0), tour_time(0), feasible(false), exec_time(0), iteration(0), last_iteration(0) {}
+
+        // (chromosome, size, fitness, tour_time, feasible) constructor
+        Solution(vector<int> chromosome, unsigned long size, int fitness, int tour_time, bool feasible) : 
+        chromosome(chromosome), size(size), fitness(fitness), tour_time(tour_time), feasible(feasible), exec_time(0), iteration(0), last_iteration(0) {}
+
+        // Constructor to initialize fitness
+        Solution(int fitness) : size(0), fitness(fitness), tour_time(0), feasible(false), exec_time(0), iteration(0), last_iteration(0) {}
+
+        // Comparison operator compare fitness
+        bool operator>(const Solution& other) const{
+            return this->fitness > other.fitness;
+        }
+        bool operator<(const Solution& other) const {
+        return this->fitness < other.fitness;
+        }
     };
 
     // initialization parameters
@@ -29,6 +49,7 @@ public:
     vector<vector<int>> edge_travel_times; // matrix of edge dwell times
     int max_iterations;
     int patience;
+    int migration_rate;
     unsigned int seed;
 
     // extra variables
@@ -38,15 +59,22 @@ public:
     vector<Solution> population;
     Solution best_solution;
 
+    // Default constructor
+    Solver();
+
     // constructor, destructor
     Solver(int n, 
            vector<int> node_dwell_times, 
            vector<vector<int>> edge_travel_times, 
            int max_iterations,
            int patience,
+           int migration_rate,
            unsigned int seed);
 
     ~Solver();
+
+    // Copy assignment operator
+    Solver& operator=(const Solver& other);
 
     // methods
     void reset_seed();
@@ -84,5 +112,11 @@ public:
                    float crossover_rate,
                    float mutation_rate, 
                    int population_size, 
+                   barrier<>& pre_migration_barrier,
+                   barrier<>& post_migration_barrier,
+                   atomic<bool>& early_stopping_flag,
                    bool orderX=true);    
+
+    void migrate_population(vector<Solution> new_population, 
+                            int new_population_size);
 };

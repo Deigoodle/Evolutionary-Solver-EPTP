@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -pedantic -O2
+CXXFLAGS = -std=c++20 -g 
 
 EPTP: main.o solver.o
 	$(CXX) -o EPTP main.o solver.o

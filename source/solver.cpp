@@ -5,6 +5,7 @@ Solver::Solver(int n,
                vector<vector<int>> edge_travel_times, 
                int max_iterations, 
                int patience, 
+               int migration_rate,
                unsigned int seed) 
 {
     // initialize variables
@@ -13,6 +14,7 @@ Solver::Solver(int n,
     this->node_dwell_times = node_dwell_times;
     this->edge_travel_times = edge_travel_times;
     this->patience = patience;
+    this->migration_rate = migration_rate;
     this->seed = seed;
 
     // initialize random number generator with the fixed seed
@@ -21,8 +23,29 @@ Solver::Solver(int n,
     // best solution
     this->best_solution = Solution{vector<int>(n-1), static_cast<unsigned long>(n-1), 0,0,true};
 } 
+
+// default builder
+Solver::Solver(): n(0), max_iterations(0), patience(0), migration_rate(0), seed(0), population_size(0) {}
     
 Solver::~Solver() {
+}
+
+Solver& Solver::operator=(const Solver& other){
+    if (this != &other) {
+        // Copy data members from 'other' to 'this'
+        n = other.n;
+        node_dwell_times = other.node_dwell_times;
+        edge_travel_times = other.edge_travel_times;
+        max_iterations = other.max_iterations;
+        patience = other.patience;
+        migration_rate = other.migration_rate; // Add this line
+        seed = other.seed;
+        gen = other.gen;
+        population_size = other.population_size;
+        population = other.population;
+        best_solution = other.best_solution;
+    }
+    return *this;
 }
 
 void Solver::reset_seed()
@@ -327,6 +350,9 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
                                float crossover_rate, 
                                float mutation_rate, 
                                int population_size, 
+                               barrier<>& pre_migration_barrier,
+                               barrier<>& post_migration_barrier,
+                               atomic<bool>& early_stopping_flag,
                                bool orderX)
 {
     auto start = chrono::high_resolution_clock::now();
@@ -336,52 +362,47 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
     this->best_solution = this->population[0];
 
     int i;
-    int iterations_without_improvement = 0;
     for(i=0; i < this->max_iterations;i++){
-        bool improvement_found = false;
+        int selected_population_size = this->population_size;
 
         // calculate fitness for each solution
         int total_fitness = 0;
         for(int x = 0; x < this->population_size; x++){
             this->population[x] = calculate_fitness(this->population[x], node_valuations, edge_valuations, available_time);
-            if(this->population[x].fitness > this->best_solution.fitness){
-                // reset patience controllers
-                improvement_found = true;
-                iterations_without_improvement = 0;
 
+            // check if its better than the current best
+            if(this->population[x].fitness > this->best_solution.fitness){
                 // update best_solution
                 this->best_solution = this->population[x];
                 this->best_solution.iteration = i;
-                //cout<<"new best solution: "<< this->best_solution.fitness <<endl;
             }
+        }
+
+        // sort the population
+        sort(this->population.begin(), this->population.end(), greater<Solution>());
+
+        // Wait for migration
+        if ( ((i+1) % this->migration_rate) == 0){ // Only wait each "migration_rate" generations
+            pre_migration_barrier.arrive_and_wait();
+            post_migration_barrier.arrive_and_wait();
+            // check early stopping signal
+            if(early_stopping_flag.load()){
+                break;
+            }
+        }
+
+        // before selection calculate total_fitness
+        for(int x = 0; x < this->population_size; x++){
             total_fitness += this->population[x].fitness;
-        }
-        // if no improvement in this iteration add 1 
-        if (!improvement_found){
-            iterations_without_improvement++;
-        }
-
-        // early stopping
-        if (iterations_without_improvement >= patience){
-            break;
-        }
-
-        //cout << "Iteration: " << i << endl;
-        //cout << "Initial population size: "<< this->population_size << endl;
-
-        // check if the population is only 2 and they are the same
-        if(this->population_size == 2 && this->population[0].chromosome == this->population[1].chromosome){
-            break;
         }
 
         // selection phase (50% of the population)
-        int selected_population_size = max(this->population_size / 2, 2); //there is at least 2 selected
+        selected_population_size = max(this->population_size / 2, 2); //there is at least 2 selected
         vector<Solution> selected_population;
         for(int j = 0; j < selected_population_size; j++){
             int selected_index = spin_roulette_wheel(total_fitness);
             selected_population.push_back(this->population[selected_index]);
         }
-        //cout << "selected population size: "<<selected_population_size<< endl;
 
         // crossover phase
         int offspring_size = 0;
@@ -420,7 +441,6 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
                 offspring_size += 2;
             }
         }
-        //cout << "offspring generated: " << offspring_size << endl;
         // update population
         this->population.clear();
         this->population_size = offspring_size + selected_population_size;
@@ -435,15 +455,25 @@ Solver::Solution Solver::solve(vector<int>node_valuations,
                 this->population[l] = mutate(this->population[l]);
             }
         }
-        //cout << "new population size: " << this->population_size << endl;
-        //cout <<"---------------------------------------------"<<endl;
     }
     // calculate execution times
     auto end = chrono::high_resolution_clock::now();
-    this->best_solution.exec_time = end - start;
+    chrono::duration<double, milli> exec_time = end - start;
+    this->best_solution.exec_time = exec_time.count();
 
     // save last iteration
     this->best_solution.last_iteration = i;
 
     return this->best_solution;
+}
+
+void Solver::migrate_population(vector<Solver::Solution> new_population, int new_population_size)
+{
+    // update population size
+    this->population_size = new_population_size;
+
+    // update population
+    this->population.clear();
+    this->population.reserve(new_population_size);
+    this->population = new_population;
 }
