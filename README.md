@@ -38,7 +38,7 @@ Given a graph with $n$ nodes and $m$ edges, find a tour that goes through a subs
 
 - To run the compiled program:
 
-  `./EPTP <type 1 instance> <type 2 instance> <max iterations> <population_size> <crossover rate> <mutation rate> <resets>`
+  `./EPTP <type 1 instance> <type 2 instance> <max iterations> <population_size> <crossover rate> <mutation rate> <patience>`
 
   - `<type 1 instance>` (file) is the file that contains the data of the graph with its corresponding stay times and travel times. ([More info](#type-1-instance))
   - `<type 2 instance>` (file) is the file that contains the data of the users and its nodes and edges scores. ([More info](#type-2-instance))
