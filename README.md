@@ -38,7 +38,7 @@ Given a graph with $n$ nodes and $m$ edges, find a tour that goes through a subs
 
 - To run the compiled program:
 
-  `./EPTP <type 1 instance> <type 2 instance> <max iterations> <population_size> <crossover rate> <mutation rate> <resets>`
+  `./EPTP <type 1 instance> <type 2 instance> <max iterations> <population_size> <crossover rate> <mutation rate> <patience> <n_threads> <migration_rate>`
 
   - `<type 1 instance>` (file) is the file that contains the data of the graph with its corresponding stay times and travel times. ([More info](#type-1-instance))
   - `<type 2 instance>` (file) is the file that contains the data of the users and its nodes and edges scores. ([More info](#type-2-instance))
@@ -47,6 +47,8 @@ Given a graph with $n$ nodes and $m$ edges, find a tour that goes through a subs
   - `<crossover rate>` (float) is the probability of crossover between two solutions.
   - `<mutation rate>` (float) is the probability of mutation of a solution.
   - `<patience>` (int): The maximum number of consecutive iterations (generations) allowed without any improvement in the solution. If this threshold is reached, the algorithm will stop early to prevent unnecessary computations.
+  - `<n_threads>` (int) is the number of threads that the solver will use.
+  - `<migration_rate>` (int) is the generations between migrations between threads.
 
 - Example
 
