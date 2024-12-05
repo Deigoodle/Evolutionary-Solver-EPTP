@@ -49,6 +49,8 @@ void start_slave(vector<Solver> &slaves,
                  barrier<>& pre_migration_barrier,
                  barrier<>& post_migration_barrier,
                  atomic<bool>& early_stopping_flag);
+vector<Solver::Solution> merge_sorted_vectors(const vector<Solver::Solution>& v1, 
+                                              const vector<Solver::Solution>& v2);
 void print_solution(Solver::Solution solution, 
                     int available_time);
 
@@ -238,39 +240,52 @@ Solver::Solution solve_for_user(user user_info,
     
         // combine populations (sorted)
         vector<Solver::Solution> entire_population;
-        int entire_population_size = 0;
+        
         for(int t=0; t < solver_pars.n_threads; t++){
-            // temporal vector
-            vector<Solver::Solution> temp;
-            temp.reserve(entire_population_size + slaves[t].population.size());
-    
-            // add thread population and sort it
-            merge(entire_population.begin(), entire_population.end(), 
-                  slaves[t].population.begin(), slaves[t].population.end(),
-                  back_inserter(temp));
-    
             // update entire population
-            entire_population = move(temp);
+            entire_population = merge_sorted_vectors(entire_population, slaves[t].population);
+
+            // check if there is improvement
+            if(slaves[t].best_solution > best_solution){
+                // reset patience controllers
+                improvement_found = true;
+                iterations_without_improvement = 0;
     
-            // calculate new size
-            entire_population_size = entire_population.size();
+                // update best_solution
+                best_solution = slaves[t].best_solution;
+                best_solution.iteration = g;
+            }
         }
+
+        /*
+        // random migration version
+        for(int t=0; t < solver_pars.n_threads; t++){
+            // insert thread population into main population
+            entire_population.insert(entire_population.end(), slaves[t].population.begin(), slaves[t].population.end());
+
+            // check if there is improvement
+            if(slaves[t].best_solution > best_solution){
+                // reset patience controllers
+                improvement_found = true;
+                iterations_without_improvement = 0;
+    
+                // update best_solution
+                best_solution = slaves[t].best_solution;
+                best_solution.iteration = g;
+            }
+        }
+
+        // shuffle the combined population
+        shuffle(entire_population.begin(), entire_population.end(), default_random_engine(SEED));
+        */
+        
+        // new population size
+        int entire_population_size = entire_population.size();
     
         // Check if entire_population is empty
         if (entire_population.empty()) {
             cout << "Error: entire_population is empty" << endl;
             break;
-        }
-    
-        // search for solution improvement
-        if(entire_population[0] > best_solution){
-            // reset patience controllers
-            improvement_found = true;
-            iterations_without_improvement = 0;
-    
-            // update best_solution
-            best_solution = entire_population[0];
-            best_solution.iteration = g;
         }
     
         // if no improvement in this iteration add 1 
@@ -353,6 +368,13 @@ void start_slave(vector<Solver> &slaves,
                                        ref(post_migration_barrier),
                                        ref(early_stopping_flag),
                                        /*orderX*/true);
+}
+
+vector<Solver::Solution> merge_sorted_vectors(const vector<Solver::Solution>& v1, const vector<Solver::Solution>& v2) {
+    vector<Solver::Solution> result;
+    result.reserve(v1.size() + v2.size());
+    merge(v1.begin(), v1.end(), v2.begin(), v2.end(), back_inserter(result));
+    return result;
 }
 
 void print_solution(Solver::Solution solution, int available_time)
